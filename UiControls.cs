@@ -13,6 +13,14 @@ public sealed class RoundedPanel : Panel
         ResizeRedraw = true;
     }
 
+    protected override void OnResize(EventArgs eventArgs)
+    {
+        base.OnResize(eventArgs);
+        if (Width < 2 || Height < 2) return;
+        using var path = RoundedPath(new Rectangle(0, 0, Width - 1, Height - 1), CornerRadius);
+        Region = new Region(path);
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -47,6 +55,7 @@ public sealed class RoundedButton : Button
     public Color FillColor { get; set; }
     public Color HoverColor { get; set; }
     public Color TextColor { get; set; }
+    public Color BorderColor { get; set; } = Color.Transparent;
     private bool _hovered;
 
     public RoundedButton()
@@ -79,7 +88,19 @@ public sealed class RoundedButton : Button
         using var path = RoundedPath(bounds, CornerRadius);
         using var fill = new SolidBrush(_hovered && HoverColor != Color.Empty ? HoverColor : FillColor);
         e.Graphics.FillPath(fill, path);
-        TextRenderer.DrawText(e.Graphics, Text, Font, bounds, TextColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.LeftAndRightPadding);
+        if (BorderColor != Color.Transparent)
+        {
+            using var pen = new Pen(BorderColor);
+            e.Graphics.DrawPath(pen, path);
+        }
+        var textBounds = Rectangle.FromLTRB(bounds.Left + Padding.Left, bounds.Top + Padding.Top, bounds.Right - Padding.Right, bounds.Bottom - Padding.Bottom);
+        var alignment = TextAlign switch
+        {
+            ContentAlignment.MiddleCenter or ContentAlignment.TopCenter or ContentAlignment.BottomCenter => TextFormatFlags.HorizontalCenter,
+            ContentAlignment.MiddleRight or ContentAlignment.TopRight or ContentAlignment.BottomRight => TextFormatFlags.Right,
+            _ => TextFormatFlags.Left,
+        };
+        TextRenderer.DrawText(e.Graphics, Text, Font, textBounds, TextColor, alignment | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 
     private static GraphicsPath RoundedPath(Rectangle bounds, int radius)

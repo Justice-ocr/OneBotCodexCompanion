@@ -4,11 +4,11 @@ namespace OneBotCodexCompanion;
 
 public sealed class MainForm : Form
 {
-    private static readonly Color Canvas = Color.FromArgb(17, 18, 23);
-    private static readonly Color Sidebar = Color.FromArgb(22, 23, 29);
-    private static readonly Color Surface = Color.FromArgb(33, 33, 42);
-    private static readonly Color SurfaceRaised = Color.FromArgb(42, 42, 53);
-    private static readonly Color Border = Color.FromArgb(67, 67, 81);
+    private static readonly Color Canvas = Color.FromArgb(16, 17, 22);
+    private static readonly Color Sidebar = Color.FromArgb(19, 20, 26);
+    private static readonly Color Surface = Color.FromArgb(37, 40, 50);
+    private static readonly Color SurfaceRaised = Color.FromArgb(47, 52, 64);
+    private static readonly Color Border = Color.FromArgb(70, 74, 88);
     private static readonly Color TextPrimary = Color.FromArgb(242, 245, 249);
     private static readonly Color TextMuted = Color.FromArgb(161, 173, 190);
     private static readonly Color Accent = Color.FromArgb(45, 137, 239);
@@ -23,6 +23,7 @@ public sealed class MainForm : Form
     private readonly Label _status = new();
     private readonly Panel _statusDot = new();
     private readonly Label _monitorBadge = new();
+    private readonly RoundedPanel _monitorCard = new();
     private AppSettings _settings = new();
     private string _token = "";
     private string _activePage = "connection";
@@ -102,10 +103,10 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            Padding = new Padding(22),
+            Padding = new Padding(0),
             BackColor = Canvas,
         };
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 216));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.Controls.Add(SidebarPanel(), 0, 0);
 
@@ -114,9 +115,9 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill,
             BackColor = Surface,
             BorderColor = Border,
-            CornerRadius = 22,
-            Padding = new Padding(28, 26, 28, 14),
-            Margin = new Padding(18, 0, 0, 0),
+            CornerRadius = 34,
+            Padding = new Padding(40, 34, 40, 20),
+            Margin = new Padding(34, 34, 34, 34),
         };
         _contentHost.Dock = DockStyle.Fill;
         _contentHost.BackColor = Surface;
@@ -132,47 +133,61 @@ public sealed class MainForm : Form
 
     private Control SidebarPanel()
     {
-        var panel = new RoundedPanel { Dock = DockStyle.Fill, BackColor = Sidebar, BorderColor = Border, CornerRadius = 22, Padding = new Padding(16) };
-        var mark = new Panel { BackColor = Accent, Width = 30, Height = 6, Location = new Point(20, 24) };
+        var panel = new Panel { Dock = DockStyle.Fill, BackColor = Sidebar, Padding = new Padding(0) };
+        var mark = new RoundedPanel { BackColor = Accent, CornerRadius = 8, Width = 42, Height = 10, Location = new Point(104, 34) };
         var title = new Label
         {
-            Text = "OneBot Codex",
-            Font = new Font("Microsoft YaHei UI", 14F, FontStyle.Bold),
-            AutoSize = true,
-            Location = new Point(20, 46),
+            Text = "Codex 通知助手",
+            Font = new Font("Microsoft YaHei UI", 12F, FontStyle.Bold),
+            AutoSize = false,
+            Width = 190,
+            Height = 28,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Location = new Point(30, 64),
         };
         var subtitle = new Label
         {
-            Text = "任务完成通知助手",
+            Text = "OneBot 任务完成通知",
             ForeColor = TextMuted,
-            AutoSize = true,
-            Location = new Point(21, 74),
+            Font = new Font("Microsoft YaHei UI", 8.5F),
+            AutoSize = false,
+            Width = 190,
+            Height = 22,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Location = new Point(30, 92),
         };
         var navigation = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
-            Location = new Point(16, 122),
-            Width = 184,
-            Height = 210,
+            Location = new Point(30, 158),
+            Width = 190,
+            Height = 230,
             WrapContents = false,
             BackColor = Sidebar,
         };
         navigation.Controls.Add(NavigationButton("connection", "连接设置"));
         navigation.Controls.Add(NavigationButton("routes", "对话路由"));
         navigation.Controls.Add(NavigationButton("monitor", "自动通知"));
-        _monitorBadge.AutoSize = true;
-        _monitorBadge.BackColor = Sidebar;
+        _monitorCard.BackColor = Surface;
+        _monitorCard.BorderColor = Border;
+        _monitorCard.CornerRadius = 14;
+        _monitorCard.Size = new Size(190, 48);
+        _monitorCard.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        _monitorCard.Location = new Point(30, panel.Height - 78);
+        panel.Resize += (_, _) => _monitorCard.Top = panel.ClientSize.Height - 78;
+        _monitorBadge.AutoSize = false;
+        _monitorBadge.Dock = DockStyle.Fill;
+        _monitorBadge.BackColor = Color.Transparent;
         _monitorBadge.ForeColor = TextMuted;
-        _monitorBadge.Padding = new Padding(4);
+        _monitorBadge.TextAlign = ContentAlignment.MiddleCenter;
+        _monitorBadge.Padding = new Padding(8, 0, 8, 0);
         _monitorBadge.Text = "监视未启动";
-        _monitorBadge.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-        _monitorBadge.Location = new Point(20, panel.Height - 48);
-        panel.Resize += (_, _) => _monitorBadge.Top = panel.ClientSize.Height - 42;
         panel.Controls.Add(mark);
         panel.Controls.Add(title);
         panel.Controls.Add(subtitle);
         panel.Controls.Add(navigation);
-        panel.Controls.Add(_monitorBadge);
+        _monitorCard.Controls.Add(_monitorBadge);
+        panel.Controls.Add(_monitorCard);
         return panel;
     }
 
@@ -182,15 +197,17 @@ public sealed class MainForm : Form
         {
             Text = text,
             AutoSize = false,
-            Width = 176,
-            Height = 44,
-            FillColor = Sidebar,
+            Width = 190,
+            Height = 50,
+            FillColor = Surface,
             HoverColor = SurfaceRaised,
             TextColor = TextMuted,
             ForeColor = TextMuted,
             TextAlign = ContentAlignment.MiddleLeft,
-            Padding = new Padding(16, 0, 0, 0),
-            Margin = new Padding(0, 0, 0, 10),
+            Padding = new Padding(18, 0, 18, 0),
+            Margin = new Padding(0, 0, 0, 14),
+            CornerRadius = 14,
+            BorderColor = Border,
             Cursor = Cursors.Hand,
         };
         button.Click += (_, _) => ShowPage(page);
@@ -200,7 +217,7 @@ public sealed class MainForm : Form
 
     private Control StatusBar()
     {
-        var panel = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 28, ColumnCount = 2, BackColor = Surface, Padding = new Padding(0, 0, 0, 0) };
+        var panel = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 28, ColumnCount = 2, BackColor = Surface, Padding = new Padding(0) };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 14));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         _statusDot.BackColor = TextMuted;
@@ -228,7 +245,7 @@ public sealed class MainForm : Form
         form.SetColumnSpan(form.GetControlFromPosition(0, 4)!, 2);
         _manualMessage.Height = 96;
         form.Controls.Add(ButtonPanel(_sendButton), 1, 5);
-        page.Controls.Add(form);
+        AddContentCard(page, form, 500);
         _saveButton.Click += async (_, _) => await SaveSettingsAsync();
         _testButton.Click += async (_, _) => await TestConnectionAsync();
         _sendButton.Click += async (_, _) => await SendManualAsync();
@@ -259,7 +276,7 @@ public sealed class MainForm : Form
         };
         layout.Controls.Add(note, 0, 4);
         layout.SetColumnSpan(note, 2);
-        page.Controls.Add(layout);
+        AddContentCard(page, layout, 490);
         setRoute.Click += async (_, _) => await SaveRouteAsync();
         deleteRoute.Click += async (_, _) => await DeleteRouteAsync();
         _routeList.SelectedIndexChanged += (_, _) => HydrateRouteSelection();
@@ -269,23 +286,23 @@ public sealed class MainForm : Form
     private Panel MonitorPage()
     {
         var page = NewPage("monitor", "自动通知", "监视 Codex 本地会话事件，并在任务完成时发送 OneBot 消息。");
-        var panel = new Panel { Dock = DockStyle.Top, Height = 142, BackColor = Surface, Padding = new Padding(0), Margin = new Padding(6) };
-        var title = new Label { Text = "本地任务监视", Font = new Font("Microsoft YaHei UI", 11F, FontStyle.Bold), AutoSize = true, Location = new Point(0, 8) };
+        var panel = new Panel { Dock = DockStyle.Fill, Height = 220, BackColor = SurfaceRaised, Padding = new Padding(24) };
+        var title = new Label { Text = "本地任务监视", Font = new Font("Microsoft YaHei UI", 12F, FontStyle.Bold), AutoSize = true, Location = new Point(24, 24) };
         var description = new Label
         {
             Text = "读取 Codex 本地会话日志中的 task_complete 事件。API 登录、官方账号登录及不同模型服务商均使用同一完成信号。",
             ForeColor = TextMuted,
-            Location = new Point(0, 38),
-            MaximumSize = new Size(700, 0),
+            Location = new Point(24, 58),
+            MaximumSize = new Size(620, 0),
             AutoSize = true,
         };
-        _monitorEnabled.Location = new Point(0, 84);
-        _monitorButton.Location = new Point(0, 108);
+        _monitorEnabled.Location = new Point(24, 118);
+        _monitorButton.Location = new Point(24, 150);
         panel.Controls.Add(title);
         panel.Controls.Add(description);
         panel.Controls.Add(_monitorEnabled);
         panel.Controls.Add(_monitorButton);
-        page.Controls.Add(panel);
+        AddContentCard(page, panel, 220);
         _monitorButton.Click += async (_, _) => await ToggleMonitorAsync();
         return page;
     }
@@ -297,18 +314,45 @@ public sealed class MainForm : Form
             Name = pageName,
             Dock = DockStyle.Fill,
             BackColor = Surface,
-            Padding = new Padding(8, 86, 8, 14),
+            Padding = new Padding(0),
             AutoScroll = true,
             Visible = false,
         };
-        var heading = new Label { Text = title, Font = new Font("Microsoft YaHei UI", 21F, FontStyle.Bold), AutoSize = true, Location = new Point(8, 12) };
-        var description = new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, Location = new Point(10, 52) };
-        var divider = new Panel { BackColor = Border, Height = 1, Location = new Point(8, 78), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        page.Resize += (_, _) => divider.Width = Math.Max(0, page.ClientSize.Width - 16);
+        var heading = new Label { Text = title, Font = new Font("Microsoft YaHei UI", 23F, FontStyle.Bold), AutoSize = true, Location = new Point(0, 2) };
+        var description = new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, Location = new Point(2, 48) };
+        var divider = new Panel { BackColor = Border, Height = 1, Location = new Point(0, 88), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        page.Resize += (_, _) => divider.Width = Math.Max(0, page.ClientSize.Width);
         page.Controls.Add(heading);
         page.Controls.Add(description);
         page.Controls.Add(divider);
         return page;
+    }
+
+    private void AddContentCard(Panel page, Control content, int height)
+    {
+        var card = new RoundedPanel
+        {
+            BackColor = SurfaceRaised,
+            BorderColor = Border,
+            CornerRadius = 18,
+            Height = height,
+            Top = 118,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left,
+        };
+        content.Dock = DockStyle.Fill;
+        content.BackColor = SurfaceRaised;
+        content.Padding = new Padding(22);
+        card.Controls.Add(content);
+        page.Controls.Add(card);
+
+        void PlaceCard()
+        {
+            card.Left = 0;
+            card.Width = Math.Min(760, Math.Max(320, page.ClientSize.Width - SystemInformation.VerticalScrollBarWidth));
+        }
+
+        page.Resize += (_, _) => PlaceCard();
+        PlaceCard();
     }
 
     private void ShowPage(string page)
@@ -319,9 +363,10 @@ public sealed class MainForm : Form
         {
             var active = pair.Key == page;
             var button = (RoundedButton)pair.Value;
-            button.FillColor = active ? Accent : Sidebar;
+            button.FillColor = active ? Accent : Surface;
             button.HoverColor = active ? AccentHover : SurfaceRaised;
             button.TextColor = active ? Color.White : TextMuted;
+            button.BorderColor = active ? Color.FromArgb(105, 153, 241) : Border;
             button.ForeColor = button.TextColor;
             button.Font = new Font("Microsoft YaHei UI", 9.5F, active ? FontStyle.Bold : FontStyle.Regular);
             button.Invalidate();
@@ -501,7 +546,9 @@ public sealed class MainForm : Form
     {
         var running = _sessionMonitor.IsRunning;
         _monitorBadge.Text = running ? "监视运行中" : "监视未启动";
-        _monitorBadge.BackColor = running ? Color.FromArgb(29, 84, 65) : SurfaceRaised;
+        _monitorCard.BackColor = running ? Color.FromArgb(31, 80, 64) : Surface;
+        _monitorCard.BorderColor = running ? Color.FromArgb(61, 151, 113) : Border;
+        _monitorCard.Invalidate();
         _monitorBadge.ForeColor = running ? Color.FromArgb(122, 224, 179) : TextMuted;
     }
 
@@ -514,7 +561,7 @@ public sealed class MainForm : Form
 
     private static TableLayoutPanel NewForm()
     {
-        var form = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Padding = new Padding(0, 0, 0, 12) };
+        var form = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = false, ColumnCount = 2, Padding = new Padding(0, 0, 0, 12) };
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         for (var index = 0; index < 8; index++) form.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -525,9 +572,25 @@ public sealed class MainForm : Form
     {
         var panel = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Fill, ColumnCount = 1, Margin = new Padding(6, 8, 6, 8) };
         var label = new Label { Text = text, AutoSize = true, ForeColor = TextPrimary, Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 7) };
-        control.Dock = DockStyle.Top;
+        var height = control is TextBox textBox && textBox.Multiline ? 104 : 42;
+        var field = new RoundedPanel { BackColor = Surface, BorderColor = Border, CornerRadius = 10, Height = height, Dock = DockStyle.Top };
+        var host = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = control is TextBox { Multiline: true } ? new Padding(12, 10, 12, 10) : new Padding(12, 9, 12, 7) };
+        if (control is TextBox input)
+        {
+            input.BorderStyle = BorderStyle.None;
+            input.BackColor = Surface;
+            input.ForeColor = TextPrimary;
+        }
+        else if (control is ComboBox select)
+        {
+            select.BackColor = Surface;
+            select.ForeColor = TextPrimary;
+        }
+        control.Dock = DockStyle.Fill;
+        host.Controls.Add(control);
+        field.Controls.Add(host);
         panel.Controls.Add(label, 0, 0);
-        panel.Controls.Add(control, 0, 1);
+        panel.Controls.Add(field, 0, 1);
         return panel;
     }
 
@@ -559,25 +622,23 @@ public sealed class MainForm : Form
 
     private static Button ButtonInput(string text, bool primary = false, bool danger = false)
     {
-        var color = danger ? Color.FromArgb(131, 54, 63) : primary ? Accent : SurfaceRaised;
-        var button = new Button
+        var color = danger ? Color.FromArgb(131, 54, 63) : primary ? Accent : Color.FromArgb(58, 64, 77);
+        var button = new RoundedButton
         {
             Text = text,
             AutoSize = true,
             MinimumSize = new Size(102, 36),
-            BackColor = color,
+            FillColor = color,
+            HoverColor = danger ? Color.FromArgb(154, 64, 74) : primary ? AccentHover : Color.FromArgb(62, 68, 82),
+            BorderColor = primary ? Color.FromArgb(105, 153, 241) : danger ? Color.FromArgb(173, 76, 86) : Color.FromArgb(98, 108, 128),
+            TextColor = Color.White,
             ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            FlatAppearance = { BorderSize = 0 },
+            TextAlign = ContentAlignment.MiddleCenter,
+            CornerRadius = 11,
             Padding = new Padding(13, 6, 13, 6),
             Margin = new Padding(8, 0, 0, 0),
             Cursor = Cursors.Hand,
         };
-        if (primary)
-        {
-            button.MouseEnter += (_, _) => button.BackColor = AccentHover;
-            button.MouseLeave += (_, _) => button.BackColor = Accent;
-        }
         return button;
     }
 }
