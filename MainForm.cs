@@ -24,6 +24,7 @@ public sealed class MainForm : Form
     private readonly Panel _statusDot = new();
     private readonly Label _monitorBadge = new();
     private readonly RoundedPanel _monitorCard = new();
+    private readonly ToolTip _tooltips = new();
     private AppSettings _settings = new();
     private string _token = "";
     private string _activePage = "connection";
@@ -32,15 +33,15 @@ public sealed class MainForm : Form
     private readonly ComboBox _recipientType = SelectInput("private", "group");
     private readonly TextBox _recipientId = TextInput();
     private readonly ComboBox _messageFormat = SelectInput("array", "string");
-    private readonly TextBox _manualMessage = TextInput(multiline: true);
+    private readonly TextBox _manualMessage = TextInput();
     private readonly TextBox _threadId = TextInput();
     private readonly ComboBox _routeType = SelectInput("private", "group");
     private readonly TextBox _routeRecipientId = TextInput();
     private readonly ListView _routeList = new();
     private readonly CheckBox _monitorEnabled = new();
-    private readonly Button _saveButton = ButtonInput("保存设置", primary: true);
-    private readonly Button _testButton = ButtonInput("测试连接");
-    private readonly Button _sendButton = ButtonInput("发送消息", primary: true);
+    private readonly Button _saveButton = ButtonInput("保存", primary: true, compact: true);
+    private readonly Button _testButton = ButtonInput("测试", compact: true);
+    private readonly Button _sendButton = ButtonInput("...", compact: true);
     private readonly Button _monitorButton = ButtonInput("启动监视", primary: true);
 
     public MainForm()
@@ -55,6 +56,7 @@ public sealed class MainForm : Form
 
         ConfigureRouteList();
         ConfigureMonitorToggle();
+        _tooltips.SetToolTip(_sendButton, "发送自定义消息");
         _status.AutoSize = false;
         _status.Dock = DockStyle.Fill;
         _status.ForeColor = TextMuted;
@@ -240,15 +242,11 @@ public sealed class MainForm : Form
         form.Controls.Add(Labeled("默认收件人类型", "private 为私聊，group 为群聊", _recipientType), 0, 2);
         form.Controls.Add(Labeled("群号或 QQ 号", "用于接收默认任务通知", _recipientId), 1, 2);
         form.Controls.Add(Labeled("消息格式", "根据 OneBot 实现选择 array 或 string", _messageFormat), 0, 3);
-        form.Controls.Add(ButtonPanel(_saveButton, _testButton), 1, 3);
-        form.Controls.Add(Labeled("手动发送消息", "用于确认消息内容和收件人", _manualMessage), 0, 4);
-        form.SetColumnSpan(form.GetControlFromPosition(0, 4)!, 2);
-        _manualMessage.Height = 96;
-        form.Controls.Add(ButtonPanel(_sendButton), 1, 5);
-        AddContentCard(page, form, 500);
+        form.Controls.Add(ButtonPanel(_saveButton, _testButton, _sendButton), 1, 3);
+        AddContentCard(page, form, 390);
         _saveButton.Click += async (_, _) => await SaveSettingsAsync();
         _testButton.Click += async (_, _) => await TestConnectionAsync();
-        _sendButton.Click += async (_, _) => await SendManualAsync();
+        _sendButton.Click += async (_, _) => await SendCustomMessageAsync();
         return page;
     }
 
@@ -433,6 +431,53 @@ public sealed class MainForm : Form
         {
             SetStatus(exception.Message, false, true);
         }
+    }
+
+    private async Task SendCustomMessageAsync()
+    {
+        using var dialog = new Form
+        {
+            Text = "发送自定义消息",
+            StartPosition = FormStartPosition.CenterParent,
+            ClientSize = new Size(460, 270),
+            MinimumSize = new Size(460, 270),
+            BackColor = Surface,
+            ForeColor = TextPrimary,
+            Font = new Font("Microsoft YaHei UI", 9.5F),
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+        };
+        var content = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, Padding = new Padding(24) };
+        content.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        content.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        var title = new Label { Text = "自定义消息", Font = new Font("Microsoft YaHei UI", 14F, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 0, 16) };
+        var messageInput = TextInput(multiline: true);
+        messageInput.BorderStyle = BorderStyle.None;
+        messageInput.BackColor = SurfaceRaised;
+        messageInput.ForeColor = TextPrimary;
+        messageInput.Text = _manualMessage.Text;
+        var field = new RoundedPanel { BackColor = SurfaceRaised, BorderColor = Border, CornerRadius = 12, Dock = DockStyle.Fill, Padding = new Padding(12) };
+        messageInput.Dock = DockStyle.Fill;
+        field.Controls.Add(messageInput);
+        var cancel = ButtonInput("取消");
+        cancel.DialogResult = DialogResult.Cancel;
+        var send = ButtonInput("发送", primary: true);
+        send.DialogResult = DialogResult.OK;
+        var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(0, 16, 0, 0) };
+        actions.Controls.Add(send);
+        actions.Controls.Add(cancel);
+        content.Controls.Add(title, 0, 0);
+        content.Controls.Add(field, 0, 1);
+        content.Controls.Add(actions, 0, 2);
+        dialog.Controls.Add(content);
+        dialog.AcceptButton = send;
+        dialog.CancelButton = cancel;
+
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        _manualMessage.Text = messageInput.Text;
+        await SendManualAsync();
     }
 
     private async Task SaveRouteAsync()
@@ -620,14 +665,14 @@ public sealed class MainForm : Form
         return input;
     }
 
-    private static Button ButtonInput(string text, bool primary = false, bool danger = false)
+    private static Button ButtonInput(string text, bool primary = false, bool danger = false, bool compact = false)
     {
         var color = danger ? Color.FromArgb(131, 54, 63) : primary ? Accent : Color.FromArgb(58, 64, 77);
         var button = new RoundedButton
         {
             Text = text,
             AutoSize = true,
-            MinimumSize = new Size(102, 36),
+            MinimumSize = new Size(compact ? 36 : 102, 36),
             FillColor = color,
             HoverColor = danger ? Color.FromArgb(154, 64, 74) : primary ? AccentHover : Color.FromArgb(62, 68, 82),
             BorderColor = primary ? Color.FromArgb(105, 153, 241) : danger ? Color.FromArgb(173, 76, 86) : Color.FromArgb(98, 108, 128),
@@ -635,8 +680,8 @@ public sealed class MainForm : Form
             ForeColor = Color.White,
             TextAlign = ContentAlignment.MiddleCenter,
             CornerRadius = 11,
-            Padding = new Padding(13, 6, 13, 6),
-            Margin = new Padding(8, 0, 0, 0),
+            Padding = compact ? new Padding(10, 6, 10, 6) : new Padding(13, 6, 13, 6),
+            Margin = new Padding(compact ? 5 : 8, 0, 0, 0),
             Cursor = Cursors.Hand,
         };
         return button;

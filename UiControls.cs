@@ -4,7 +4,17 @@ namespace OneBotCodexCompanion;
 
 public sealed class RoundedPanel : Panel
 {
-    public int CornerRadius { get; set; } = 16;
+    private int _cornerRadius = 16;
+    public int CornerRadius
+    {
+        get => _cornerRadius;
+        set
+        {
+            _cornerRadius = Math.Max(0, value);
+            UpdateClipRegion();
+            Invalidate();
+        }
+    }
     public Color BorderColor { get; set; } = Color.Transparent;
 
     public RoundedPanel()
@@ -16,6 +26,17 @@ public sealed class RoundedPanel : Panel
     protected override void OnResize(EventArgs eventArgs)
     {
         base.OnResize(eventArgs);
+        UpdateClipRegion();
+    }
+
+    protected override void OnHandleCreated(EventArgs eventArgs)
+    {
+        base.OnHandleCreated(eventArgs);
+        UpdateClipRegion();
+    }
+
+    private void UpdateClipRegion()
+    {
         if (Width < 2 || Height < 2) return;
         using var path = RoundedPath(new Rectangle(0, 0, Width - 1, Height - 1), CornerRadius);
         Region = new Region(path);
@@ -51,7 +72,17 @@ public sealed class RoundedPanel : Panel
 
 public sealed class RoundedButton : Button
 {
-    public int CornerRadius { get; set; } = 12;
+    private int _cornerRadius = 12;
+    public int CornerRadius
+    {
+        get => _cornerRadius;
+        set
+        {
+            _cornerRadius = Math.Max(0, value);
+            UpdateClipRegion();
+            Invalidate();
+        }
+    }
     public Color FillColor { get; set; }
     public Color HoverColor { get; set; }
     public Color TextColor { get; set; }
@@ -72,6 +103,25 @@ public sealed class RoundedButton : Button
         _hovered = true;
         Invalidate();
         base.OnMouseEnter(e);
+    }
+
+    protected override void OnResize(EventArgs eventArgs)
+    {
+        base.OnResize(eventArgs);
+        UpdateClipRegion();
+    }
+
+    protected override void OnHandleCreated(EventArgs eventArgs)
+    {
+        base.OnHandleCreated(eventArgs);
+        UpdateClipRegion();
+    }
+
+    private void UpdateClipRegion()
+    {
+        if (Width < 2 || Height < 2) return;
+        using var path = RoundedPath(new Rectangle(0, 0, Width - 1, Height - 1), CornerRadius);
+        Region = new Region(path);
     }
 
     protected override void OnMouseLeave(EventArgs e)
