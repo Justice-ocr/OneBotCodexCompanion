@@ -4,10 +4,10 @@ namespace OneBotCodexCompanion;
 
 public sealed class MainForm : Form
 {
-    private static readonly Color Canvas = Color.FromArgb(20, 24, 32);
-    private static readonly Color Surface = Color.FromArgb(29, 35, 45);
-    private static readonly Color SurfaceRaised = Color.FromArgb(39, 47, 59);
-    private static readonly Color Border = Color.FromArgb(62, 72, 87);
+    private static readonly Color Canvas = Color.FromArgb(18, 21, 27);
+    private static readonly Color Surface = Color.FromArgb(25, 29, 37);
+    private static readonly Color SurfaceRaised = Color.FromArgb(34, 40, 50);
+    private static readonly Color Border = Color.FromArgb(55, 64, 78);
     private static readonly Color TextPrimary = Color.FromArgb(242, 245, 249);
     private static readonly Color TextMuted = Color.FromArgb(161, 173, 190);
     private static readonly Color Accent = Color.FromArgb(45, 137, 239);
@@ -44,8 +44,8 @@ public sealed class MainForm : Form
     public MainForm()
     {
         Text = "OneBot Codex 通知助手";
-        MinimumSize = new Size(920, 700);
-        Size = new Size(1060, 790);
+        MinimumSize = new Size(900, 660);
+        Size = new Size(1040, 760);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Canvas;
         ForeColor = TextPrimary;
@@ -101,13 +101,13 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(24, 20, 24, 18),
+            Padding = new Padding(28, 22, 28, 18),
             BackColor = Canvas,
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 
         root.Controls.Add(Header(), 0, 0);
         root.Controls.Add(Navigation(), 0, 1);
@@ -126,26 +126,26 @@ public sealed class MainForm : Form
 
     private Control Header()
     {
-        var panel = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Padding = new Padding(22, 16, 18, 14), Margin = new Padding(0, 0, 0, 8) };
+        var panel = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Padding = new Padding(22, 13, 18, 12), Margin = new Padding(0, 0, 0, 8) };
         var accent = new Panel { BackColor = Accent, Width = 5, Dock = DockStyle.Left };
         var title = new Label
         {
             Text = "OneBot Codex 通知助手",
-            Font = new Font("Microsoft YaHei UI", 18F, FontStyle.Bold),
+            Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold),
             AutoSize = true,
-            Location = new Point(24, 12),
+            Location = new Point(24, 10),
         };
         var subtitle = new Label
         {
-            Text = "为 Codex 任务完成事件发送本地 OneBot 通知",
+            Text = "任务完成后，自动向 OneBot 发送通知",
             ForeColor = TextMuted,
             AutoSize = true,
-            Location = new Point(26, 53),
+            Location = new Point(26, 48),
         };
         _monitorBadge.AutoSize = true;
         _monitorBadge.BackColor = SurfaceRaised;
         _monitorBadge.ForeColor = TextMuted;
-        _monitorBadge.Padding = new Padding(11, 6, 11, 6);
+        _monitorBadge.Padding = new Padding(10, 5, 10, 5);
         _monitorBadge.Text = "监视未启动";
         _monitorBadge.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         panel.Resize += (_, _) => _monitorBadge.Left = panel.ClientSize.Width - _monitorBadge.Width - 18;
@@ -163,7 +163,7 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill,
             BackColor = Canvas,
             FlowDirection = FlowDirection.LeftToRight,
-            Padding = new Padding(0, 6, 0, 4),
+            Padding = new Padding(0, 2, 0, 4),
             WrapContents = false,
         };
         panel.Controls.Add(NavigationButton("connection", "连接设置"));
@@ -178,13 +178,13 @@ public sealed class MainForm : Form
         {
             Text = text,
             AutoSize = false,
-            Width = 118,
-            Height = 36,
+            Width = 104,
+            Height = 32,
             FlatStyle = FlatStyle.Flat,
             FlatAppearance = { BorderSize = 0 },
             BackColor = Canvas,
             ForeColor = TextMuted,
-            Margin = new Padding(0, 0, 8, 0),
+            Margin = new Padding(0, 0, 12, 0),
             Cursor = Cursors.Hand,
         };
         button.Click += (_, _) => ShowPage(page);
@@ -263,18 +263,18 @@ public sealed class MainForm : Form
     private Panel MonitorPage()
     {
         var page = NewPage("monitor", "自动通知", "监视 Codex 本地会话事件，并在任务完成时发送 OneBot 消息。");
-        var panel = new Panel { Dock = DockStyle.Top, Height = 180, BackColor = SurfaceRaised, Padding = new Padding(20), Margin = new Padding(6) };
-        var title = new Label { Text = "本地任务监视", Font = new Font("Microsoft YaHei UI", 12F, FontStyle.Bold), AutoSize = true, Location = new Point(20, 18) };
+        var panel = new Panel { Dock = DockStyle.Top, Height = 142, BackColor = Surface, Padding = new Padding(0), Margin = new Padding(6) };
+        var title = new Label { Text = "本地任务监视", Font = new Font("Microsoft YaHei UI", 11F, FontStyle.Bold), AutoSize = true, Location = new Point(0, 8) };
         var description = new Label
         {
             Text = "读取 Codex 本地会话日志中的 task_complete 事件。API 登录、官方账号登录及不同模型服务商均使用同一完成信号。",
             ForeColor = TextMuted,
-            Location = new Point(20, 52),
+            Location = new Point(0, 38),
             MaximumSize = new Size(700, 0),
             AutoSize = true,
         };
-        _monitorEnabled.Location = new Point(20, 108);
-        _monitorButton.Location = new Point(20, 138);
+        _monitorEnabled.Location = new Point(0, 84);
+        _monitorButton.Location = new Point(0, 108);
         panel.Controls.Add(title);
         panel.Controls.Add(description);
         panel.Controls.Add(_monitorEnabled);
@@ -291,14 +291,14 @@ public sealed class MainForm : Form
             Name = pageName,
             Dock = DockStyle.Fill,
             BackColor = Surface,
-            Padding = new Padding(22, 90, 22, 22),
+            Padding = new Padding(24, 80, 24, 22),
             AutoScroll = true,
             Visible = false,
         };
-        var heading = new Label { Text = title, Font = new Font("Microsoft YaHei UI", 14F, FontStyle.Bold), AutoSize = true, Location = new Point(22, 18) };
-        var description = new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, Location = new Point(24, 52) };
-        var divider = new Panel { BackColor = Border, Height = 1, Location = new Point(22, 78), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        page.Resize += (_, _) => divider.Width = Math.Max(0, page.ClientSize.Width - 44);
+        var heading = new Label { Text = title, Font = new Font("Microsoft YaHei UI", 13F, FontStyle.Bold), AutoSize = true, Location = new Point(24, 16) };
+        var description = new Label { Text = subtitle, ForeColor = TextMuted, AutoSize = true, Location = new Point(25, 46) };
+        var divider = new Panel { BackColor = Border, Height = 1, Location = new Point(24, 68), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        page.Resize += (_, _) => divider.Width = Math.Max(0, page.ClientSize.Width - 48);
         page.Controls.Add(heading);
         page.Controls.Add(description);
         page.Controls.Add(divider);
@@ -312,8 +312,9 @@ public sealed class MainForm : Form
         foreach (var pair in _navigationButtons)
         {
             var active = pair.Key == page;
-            pair.Value.BackColor = active ? SurfaceRaised : Canvas;
-            pair.Value.ForeColor = active ? TextPrimary : TextMuted;
+            pair.Value.BackColor = Canvas;
+            pair.Value.ForeColor = active ? Accent : TextMuted;
+            pair.Value.Font = new Font("Microsoft YaHei UI", 9F, active ? FontStyle.Bold : FontStyle.Regular);
         }
     }
 
@@ -503,7 +504,7 @@ public sealed class MainForm : Form
 
     private static TableLayoutPanel NewForm()
     {
-        var form = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Padding = new Padding(0, 0, 0, 16) };
+        var form = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, Padding = new Padding(0, 0, 0, 12) };
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         for (var index = 0; index < 8; index++) form.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -513,18 +514,16 @@ public sealed class MainForm : Form
     private static Control Labeled(string text, string hint, Control control)
     {
         var panel = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Fill, ColumnCount = 1, Margin = new Padding(6, 8, 6, 8) };
-        var label = new Label { Text = text, AutoSize = true, ForeColor = TextPrimary, Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 3) };
-        var help = new Label { Text = hint, AutoSize = true, ForeColor = TextMuted, Font = new Font("Microsoft YaHei UI", 8F), Margin = new Padding(0, 0, 0, 7) };
+        var label = new Label { Text = text, AutoSize = true, ForeColor = TextPrimary, Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 7) };
         control.Dock = DockStyle.Top;
         panel.Controls.Add(label, 0, 0);
-        panel.Controls.Add(help, 0, 1);
-        panel.Controls.Add(control, 0, 2);
+        panel.Controls.Add(control, 0, 1);
         return panel;
     }
 
     private static FlowLayoutPanel ButtonPanel(params Button[] buttons)
     {
-        var panel = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(0, 26, 6, 0), WrapContents = false };
+        var panel = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(0, 18, 6, 0), WrapContents = false };
         foreach (var button in buttons) panel.Controls.Add(button);
         return panel;
     }
