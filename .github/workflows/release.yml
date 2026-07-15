@@ -41,6 +41,22 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           --output $env:PUBLISH_DIR
 
+      - name: Configure native EUI application
+        shell: pwsh
+        run: >-
+          cmake -S native-eui -B native-eui-build
+          -G "Visual Studio 17 2022"
+          -A x64
+          -DEUI_BUILD_APPS=OFF
+          -DEUI_BUILD_USER_APPS=OFF
+
+      - name: Build native EUI application
+        shell: pwsh
+        run: >-
+          cmake --build native-eui-build
+          --config Release
+          --target onebot_codex_eui
+
       - name: Create release archive
         shell: pwsh
         run: >-
@@ -49,11 +65,25 @@ jobs:
           -DestinationPath "OneBotCodexCompanion-win-x64.zip"
           -Force
 
+      - name: Create native release archive
+        shell: pwsh
+        run: >-
+          Compress-Archive
+          -Path "native-eui-build\\Release\\onebot_codex_eui.exe"
+          -DestinationPath "OneBotCodexCompanion-native-eui-win-x64.zip"
+          -Force
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: OneBotCodexCompanion-win-x64
           path: OneBotCodexCompanion-win-x64.zip
+
+      - name: Upload native build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneBotCodexCompanion-native-eui-win-x64
+          path: OneBotCodexCompanion-native-eui-win-x64.zip
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -61,4 +91,6 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           name: OneBot Codex Companion ${{ env.RELEASE_TAG }}
           generate_release_notes: true
-          files: OneBotCodexCompanion-win-x64.zip
+          files: |
+            OneBotCodexCompanion-win-x64.zip
+            OneBotCodexCompanion-native-eui-win-x64.zip
