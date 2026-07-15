@@ -20,6 +20,7 @@ struct AppSettings {
     std::string accessToken;
     Recipient defaultRecipient;
     bool monitorEnabled = false;
+    bool startWithWindows = false;
     std::vector<Route> routes;
 };
 

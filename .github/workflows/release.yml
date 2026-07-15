@@ -69,7 +69,7 @@ jobs:
         shell: pwsh
         run: >-
           Compress-Archive
-          -Path "native-eui-build\\Release\\onebot_codex_eui.exe"
+          -Path "native-eui-build\\Release\\*"
           -DestinationPath "OneBotCodexCompanion-native-eui-win-x64.zip"
           -Force
 

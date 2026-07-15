@@ -26,10 +26,18 @@ endif()
 add_executable(onebot_codex_eui
     "${EUI_NEO_ROOT}/core/app/glfw_app_main.cpp"
     app.cpp
+    autostart.cpp
     onebot_client.cpp
     settings_store.cpp
     session_monitor.cpp
 )
 
 eui_neo_configure_app(onebot_codex_eui)
-target_link_libraries(onebot_codex_eui PRIVATE winhttp crypt32)
+target_link_libraries(onebot_codex_eui PRIVATE winhttp crypt32 advapi32)
+
+add_custom_command(TARGET onebot_codex_eui POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:onebot_codex_eui>/assets"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.ico"
+        "$<TARGET_FILE_DIR:onebot_codex_eui>/assets/icon.ico"
+)

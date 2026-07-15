@@ -1,10 +1,19 @@
 #include "eui_neo.h"
+#include "autostart.h"
 #include "onebot_client.h"
 #include "settings_store.h"
 #include "session_monitor.h"
 
 #include <algorithm>
 #include <string>
+
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <windows.h>
+#include <shellapi.h>
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
+#endif
 
 namespace app {
 
@@ -23,6 +32,7 @@ struct AppState {
     eui::Signal<std::string> routeRecipientId;
     bool notificationsEnabled = true;
     bool monitorRunning = settings.monitorEnabled;
+    bool startWithWindows = autostart::isEnabled();
     bool testInProgress = false;
     codex::SessionMonitor sessionMonitor;
     std::string status = "等待配置";
@@ -34,12 +44,44 @@ constexpr float kSidebarWidth = 250.0f;
 constexpr float kPageInset = 40.0f;
 constexpr float kContentWidth = 680.0f;
 
+bool backgroundLaunchRequested() {
+#ifdef _WIN32
+    int argumentCount = 0;
+    wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
+    if (!arguments) return false;
+    bool requested = false;
+    for (int index = 1; index < argumentCount; ++index) {
+        if (std::wstring(arguments[index]) == L"--background") {
+            requested = true;
+            break;
+        }
+    }
+    LocalFree(arguments);
+    return requested;
+#else
+    return false;
+#endif
+}
+
+void requestBackgroundStartup() {
+#ifdef _WIN32
+    static const bool shouldHide = backgroundLaunchRequested();
+    static bool requested = false;
+    if (!shouldHide || requested) return;
+    GLFWwindow* window = glfwGetCurrentContext();
+    if (!window) return;
+    requested = true;
+    PostMessageW(glfwGetWin32Window(window), WM_CLOSE, 0, 0);
+#endif
+}
+
 void syncSettings() {
     state.settings.baseUrl = state.oneBotUrl.get();
     state.settings.accessToken = state.accessToken.get();
     state.settings.defaultRecipient.type = state.recipientType.get();
     state.settings.defaultRecipient.id = state.recipientId.get();
     state.settings.monitorEnabled = state.monitorRunning;
+    state.settings.startWithWindows = state.startWithWindows;
 }
 
 bool saveSettings() {
@@ -256,7 +298,7 @@ void composeMonitor(eui::Ui& ui, float width) {
     pageTitle(ui, "自动通知", "监视 Codex 本地会话事件，并在任务完成时发送 OneBot 消息。", width);
     const float cardWidth = std::min(kContentWidth, std::max(320.0f, width - kPageInset * 2.0f));
     const float left = kPageInset + 24.0f;
-    panel(ui, "monitor.card", 140.0f, cardWidth, 210.0f);
+    panel(ui, "monitor.card", 140.0f, cardWidth, 280.0f);
     ui.text("monitor.status")
         .position(left, 170.0f)
         .size(cardWidth - 48.0f, 30.0f)
@@ -275,8 +317,29 @@ void composeMonitor(eui::Ui& ui, float width) {
         .color(textMuted())
         .wrap(true)
         .build();
+    ui.stack("monitor.autostart.container")
+        .position(left, 260.0f)
+        .size(cardWidth - 48.0f, 30.0f)
+        .content([&] {
+            components::checkbox(ui, "monitor.autostart")
+                .size(cardWidth - 48.0f, 30.0f)
+                .checked(state.startWithWindows)
+                .text("随 Windows 登录启动")
+                .theme(theme())
+                .onChange([](bool enabled) {
+                    std::string error;
+                    if (!autostart::setEnabled(enabled, &error)) {
+                        state.status = error.empty() ? "无法更新开机启动设置。" : error;
+                        return;
+                    }
+                    state.startWithWindows = enabled;
+                    if (saveSettings()) state.status = enabled ? "已启用开机启动。" : "已关闭开机启动。";
+                })
+                .build();
+        })
+        .build();
     components::button(ui, "monitor.toggle")
-        .position(left, 280.0f)
+        .position(left, 312.0f)
         .size(130.0f, 42.0f)
         .text(state.monitorRunning ? "停止监视" : "启动监视")
         .theme(theme(), true)
@@ -318,11 +381,15 @@ const DslAppConfig& dslAppConfig() {
         .pageId("onebot_codex_companion")
         .clearColor({0.10f, 0.10f, 0.12f, 1.0f})
         .windowSize(1180, 760)
+        .tray(true)
+        .trayTitle("OneBot Codex Companion")
+        .trayIcon("assets/icon.ico")
         .fps(90.0);
     return config;
 }
 
 void compose(eui::Ui& ui, const eui::Screen& screen) {
+    requestBackgroundStartup();
     updateMonitor();
     const float pageWidth = std::max(0.0f, screen.width - kSidebarWidth);
     ui.row("root")

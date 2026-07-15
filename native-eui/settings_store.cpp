@@ -157,6 +157,7 @@ AppSettings load() {
     settings.defaultRecipient.id = stringValue(source, "default_id");
     if (settings.defaultRecipient.type != "group") settings.defaultRecipient.type = "private";
     settings.monitorEnabled = boolValue(source, "monitor_enabled");
+    settings.startWithWindows = boolValue(source, "start_with_windows");
     parseRoutes(settings, source);
     return settings;
 }
@@ -177,6 +178,7 @@ bool save(const AppSettings& settings, std::string* error) {
                << "  \"default_type\": \"" << escapeJson(settings.defaultRecipient.type) << "\",\n"
                << "  \"default_id\": \"" << escapeJson(settings.defaultRecipient.id) << "\",\n"
                << "  \"monitor_enabled\": " << (settings.monitorEnabled ? "true" : "false") << ",\n"
+               << "  \"start_with_windows\": " << (settings.startWithWindows ? "true" : "false") << ",\n"
                << "  \"routes\": [\n";
         for (std::size_t index = 0; index < settings.routes.size(); ++index) {
             const Route& route = settings.routes[index];
