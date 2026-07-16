@@ -14,6 +14,8 @@
 
 关闭主窗口时程序会隐藏到系统托盘并继续监视。托盘菜单中的 `Show` 用于恢复窗口，`Exit` 才会彻底退出程序。
 
+首次运行会读取旧版 companion 的 `%APPDATA%\\OneBot Codex Companion\\settings.json`。若原生设置中的令牌无效，会自动迁移旧版仍可解密的令牌并重新加密保存。
+
 “对话路由”允许为单个 Codex 对话 ID 覆盖默认收件人。任务名称会优先从 `%USERPROFILE%\\.codex\\session_index.jsonl` 解析，缺少名称时才使用对话 ID。
 
 ## 构建

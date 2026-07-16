@@ -22,6 +22,10 @@ std::filesystem::path settingsPath() {
     return base / "OneBot Codex Companion" / "native-eui-settings.json";
 }
 
+std::filesystem::path legacySettingsPath() {
+    return settingsPath().parent_path() / "settings.json";
+}
+
 std::string escapeJson(const std::string& value) {
     std::string output;
     output.reserve(value.size() + 16);
@@ -38,23 +42,67 @@ std::string escapeJson(const std::string& value) {
     return output;
 }
 
+int hexValue(char value) {
+    if (value >= '0' && value <= '9') return value - '0';
+    if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+    if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+    return -1;
+}
+
+void appendUtf8(std::string& output, unsigned int codePoint) {
+    if (codePoint <= 0x7f) {
+        output += static_cast<char>(codePoint);
+    } else if (codePoint <= 0x7ff) {
+        output += static_cast<char>(0xc0 | (codePoint >> 6));
+        output += static_cast<char>(0x80 | (codePoint & 0x3f));
+    } else {
+        output += static_cast<char>(0xe0 | (codePoint >> 12));
+        output += static_cast<char>(0x80 | ((codePoint >> 6) & 0x3f));
+        output += static_cast<char>(0x80 | (codePoint & 0x3f));
+    }
+}
+
 std::string unescapeJson(const std::string& value) {
     std::string output;
     output.reserve(value.size());
-    bool escaping = false;
-    for (const char character : value) {
-        if (!escaping) {
-            if (character == '\\') escaping = true;
-            else output += character;
+    for (std::size_t index = 0; index < value.size(); ++index) {
+        const char character = value[index];
+        if (character != '\\') {
+            output += character;
             continue;
         }
-        switch (character) {
+        if (++index >= value.size()) break;
+        switch (value[index]) {
         case 'n': output += '\n'; break;
         case 'r': output += '\r'; break;
         case 't': output += '\t'; break;
-        default: output += character; break;
+        case 'b': output += '\b'; break;
+        case 'f': output += '\f'; break;
+        case 'u': {
+            if (index + 4 >= value.size()) {
+                output += 'u';
+                break;
+            }
+            unsigned int codePoint = 0;
+            bool valid = true;
+            for (std::size_t offset = 1; offset <= 4; ++offset) {
+                const int digit = hexValue(value[index + offset]);
+                if (digit < 0) {
+                    valid = false;
+                    break;
+                }
+                codePoint = (codePoint << 4) | static_cast<unsigned int>(digit);
+            }
+            if (valid) {
+                appendUtf8(output, codePoint);
+                index += 4;
+            } else {
+                output += 'u';
+            }
+            break;
         }
-        escaping = false;
+        default: output += value[index]; break;
+        }
     }
     return output;
 }
@@ -88,8 +136,14 @@ bool boolValue(const std::string& source, const std::string& key) {
     const std::string marker = "\"" + key + "\"";
     const std::size_t found = source.find(marker);
     if (found == std::string::npos) return false;
-    const std::size_t colon = source.find(':', found + marker.size());
-    return colon != std::string::npos && source.compare(colon + 1, 4, "true") == 0;
+    std::size_t cursor = source.find(':', found + marker.size());
+    if (cursor == std::string::npos) return false;
+    ++cursor;
+    while (cursor < source.size() && (source[cursor] == ' ' || source[cursor] == '\t' ||
+                                     source[cursor] == '\r' || source[cursor] == '\n')) {
+        ++cursor;
+    }
+    return source.compare(cursor, 4, "true") == 0;
 }
 
 std::string protect(const std::string& value) {
@@ -99,11 +153,13 @@ std::string protect(const std::string& value) {
     if (!CryptProtectData(&input, L"OneBot Codex Companion", nullptr, nullptr, nullptr, 0, &encrypted)) return {};
     DWORD length = 0;
     CryptBinaryToStringA(encrypted.pbData, encrypted.cbData, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &length);
-    std::string output(length, '\0');
+    // CryptBinaryToStringA's size convention differs between Windows SDK versions.
+    // Allocate a spare byte and trim only an actual terminator.
+    std::string output(static_cast<std::size_t>(length) + 1, '\0');
     const bool encoded = CryptBinaryToStringA(encrypted.pbData, encrypted.cbData, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, output.data(), &length);
     LocalFree(encrypted.pbData);
     if (!encoded) return {};
-    output.resize(length ? length - 1 : 0);
+    output.resize(std::char_traits<char>::length(output.c_str()));
     return output;
 }
 
@@ -141,24 +197,50 @@ void parseRoutes(AppSettings& settings, const std::string& source) {
     }
 }
 
+AppSettings loadLegacy() {
+    AppSettings settings;
+    std::ifstream input(legacySettingsPath(), std::ios::binary);
+    if (!input) return settings;
+    std::ostringstream buffer;
+    buffer << input.rdbuf();
+    const std::string source = buffer.str();
+    const std::string baseUrl = stringValue(source, "BaseUrl");
+    if (!baseUrl.empty()) settings.baseUrl = baseUrl;
+    settings.accessToken = unprotect(stringValue(source, "EncryptedToken"));
+    settings.defaultRecipient.type = stringValue(source, "TargetType");
+    settings.defaultRecipient.id = stringValue(source, "TargetId");
+    if (settings.defaultRecipient.type != "group") settings.defaultRecipient.type = "private";
+    settings.monitorEnabled = boolValue(source, "MonitorEnabled");
+    return settings;
+}
+
 } // namespace
 
 AppSettings load() {
     AppSettings settings;
     std::ifstream input(settingsPath(), std::ios::binary);
-    if (!input) return settings;
+    if (!input) return loadLegacy();
     std::ostringstream buffer;
     buffer << input.rdbuf();
     const std::string source = buffer.str();
     const std::string baseUrl = stringValue(source, "base_url");
     if (!baseUrl.empty()) settings.baseUrl = baseUrl;
-    settings.accessToken = unprotect(stringValue(source, "encrypted_token"));
+    const std::string encryptedToken = stringValue(source, "encrypted_token");
+    settings.accessToken = unprotect(encryptedToken);
     settings.defaultRecipient.type = stringValue(source, "default_type");
     settings.defaultRecipient.id = stringValue(source, "default_id");
     if (settings.defaultRecipient.type != "group") settings.defaultRecipient.type = "private";
     settings.monitorEnabled = boolValue(source, "monitor_enabled");
     settings.startWithWindows = boolValue(source, "start_with_windows");
     parseRoutes(settings, source);
+    if (!encryptedToken.empty() && settings.accessToken.empty()) {
+        const AppSettings legacy = loadLegacy();
+        if (!legacy.accessToken.empty()) {
+            settings.accessToken = legacy.accessToken;
+            if (settings.defaultRecipient.id.empty()) settings.defaultRecipient = legacy.defaultRecipient;
+            (void)save(settings);
+        }
+    }
     return settings;
 }
 
