@@ -27,6 +27,7 @@ add_executable(onebot_codex_eui
     "${EUI_NEO_ROOT}/core/app/glfw_app_main.cpp"
     app.cpp
     autostart.cpp
+    notification_service.cpp
     onebot_client.cpp
     settings_store.cpp
     session_monitor.cpp

@@ -1,8 +1,8 @@
 #include "eui_neo.h"
 #include "autostart.h"
+#include "notification_service.h"
 #include "onebot_client.h"
 #include "settings_store.h"
-#include "session_monitor.h"
 
 #include <algorithm>
 #include <string>
@@ -34,7 +34,7 @@ struct AppState {
     bool monitorRunning = settings.monitorEnabled;
     bool startWithWindows = autostart::isEnabled();
     bool testInProgress = false;
-    codex::SessionMonitor sessionMonitor;
+    notification::Service notificationService;
     std::string status = "等待配置";
 };
 
@@ -87,42 +87,22 @@ void syncSettings() {
 bool saveSettings() {
     syncSettings();
     std::string error;
-    if (settings::save(state.settings, &error)) return true;
+    if (settings::save(state.settings, &error)) {
+        state.notificationService.update(state.settings);
+        return true;
+    }
     state.status = error.empty() ? "保存设置失败。" : error;
     return false;
 }
 
 void updateMonitor() {
     if (!state.monitorRunning) {
-        if (state.sessionMonitor.running()) state.sessionMonitor.stop();
+        if (state.notificationService.running()) state.notificationService.stop();
         return;
     }
-    if (!state.sessionMonitor.running()) {
-        std::string error;
-        if (!state.sessionMonitor.start(&error)) {
-            state.monitorRunning = false;
-            saveSettings();
-            state.status = error.empty() ? "无法启动本地会话监视。" : error;
-            return;
-        }
-        state.status = "正在监视 Codex 本地会话。";
-    }
-    for (const codex::TaskCompletion& completion : state.sessionMonitor.poll()) {
-        const settings::Recipient& recipient = settings::recipientFor(state.settings, completion.threadId);
-        const std::string title = completion.title.empty() ? completion.threadId : completion.title;
-        const std::string message = "Codex 任务已完成\n任务：" + title;
-        const std::string requestKey = "onebot.notify." + completion.threadId + "." + completion.turnId;
-        const std::string url = state.oneBotUrl.get();
-        const std::string token = state.accessToken.get();
-        const std::string recipientType = recipient.type;
-        const std::string recipientId = recipient.id;
-        core::async::runOnce(requestKey, [url, token, recipientType, recipientId, message] {
-            return onebot::sendNotification(url, token, recipientType, recipientId, message);
-        }, [title](const core::async::Result<onebot::RequestResult>& result) {
-            if (result.ok && result.value.ok) state.status = "已发送任务完成通知：" + title;
-            else state.status = result.ok ? result.value.detail : result.error;
-        });
-    }
+    if (!state.notificationService.running()) state.notificationService.start(state.settings);
+    const std::string serviceStatus = state.notificationService.status();
+    if (!serviceStatus.empty()) state.status = serviceStatus;
 }
 
 components::theme::ThemeColorTokens theme() {
